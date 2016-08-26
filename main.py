@@ -1,25 +1,91 @@
-#!/usr/bin/env python
-#
-# Copyright 2007 Google Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
 import webapp2
+import cgi
 
-class MainHandler(webapp2.RequestHandler):
+
+page_header = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Caesar</title>
+    <style type="text/css">
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>
+        <a href="/">Caesar</a>
+    </h1>
+"""
+
+page_footer = """
+</body>
+</html>
+"""
+
+class Index(webapp2.RequestHandler):
+
     def get(self):
-        self.response.write('Hello world!')
+
+        edit_header = "<h3>Encrypt</h3>"
+
+
+        rot_form = """
+        <form action="/rotations" method="post">
+            <label for="rot_amount">Rotate by:</label>
+                <input type="text" name="rot_amount" value="0"/>
+                <br>
+            <label for="text">Encrypt</label>
+                <textarea type="text" name="text"></textarea>
+
+            <input type="submit" value="Submit"/>
+        </form>
+        """
+
+        error = self.request.get("error")
+        error_element = "<p class='error'>" + error + "</p>" if error else ""
+
+
+        main_content = edit_header + rot_form + error_element
+        response = page_header + main_content + page_footer
+        self.response.write(response)
+
+class rotation(webapp2.RequestHandler):
+
+    def post(self):
+        rot = int(cgi.escape(self.request.get("rot_amount")))
+        text = cgi.escape(self.request.get("text"))
+
+
+        def encrypt(text, rot):
+            newstring = ""
+            for x in text:
+                newstring += rotate_character(x, rot)
+            return newstring
+
+        def alphabet_position(letter):
+            return ord(letter) % 32 - 1
+
+        def rotate_character(char, rot):
+            if char.isalpha() == True:
+                if char.isupper() == True:
+                    pos = (alphabet_position(char) + rot) % 26
+                    newchar = pos + ord("A")
+
+                if char.islower() == True:
+                    pos = (alphabet_position(char) + rot) % 26
+                    newchar = pos + ord("a")
+                return chr(newchar)
+            if char.isalpha() == False:
+                return char
+
+        newstring = encrypt(text, rot)
+        response = page_header + "<p>" + newstring + "</p>" + page_footer
+        self.response.write(response)
 
 app = webapp2.WSGIApplication([
-    ('/', MainHandler)
+    ('/', Index),
+    ('/rotations', rotation)
+
 ], debug=True)
